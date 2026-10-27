@@ -1,0 +1,1434 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRICER — Options, Forward, Stratégies &amp; Produits structurés</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Terminal de marché : fond noir, texte ambre, bandeaux bleus, chiffres en chasse fixe. */
+:root{
+  --bg:#000;            /* fond de l'écran */
+  --panel:#07090d;      /* fond des panneaux */
+  --bar:#102a52;        /* bandeaux de titre bleus */
+  --line:#262b33;       /* séparateurs */
+  --amber:#ffa028;      /* couleur maîtresse : titres, saisies, focus */
+  --yellow:#f5d547;     /* mise en avant ponctuelle */
+  --text:#e6e6e6;       /* valeurs */
+  --muted:#8a8f98;      /* libellés secondaires */
+  --cyan:#5cc8ff;
+  --green:#3ddc84;
+  --red:#ff5c5c;
+  --mono:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --cond:'IBM Plex Sans Condensed', 'Arial Narrow', system-ui, sans-serif;
+}
+*{box-sizing:border-box}
+html{color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 var(--cond)}
+
+/* --- Barre de commande en haut --- */
+.topbar{display:flex;align-items:stretch;border-bottom:1px solid var(--line);background:#000;font-family:var(--mono);font-size:13px}
+.brand{background:var(--amber);color:#000;font-weight:600;padding:8px 14px;letter-spacing:.06em}
+.cmd{flex:1;display:flex;align-items:center;gap:10px;padding:0 14px;color:var(--amber);min-width:0}
+.cmd .prompt{color:var(--muted)}
+.cmd .go{border:1px solid var(--green);color:var(--green);padding:0 6px;font-size:11px;line-height:18px}
+.cmd .caret{display:inline-block;width:8px;height:15px;background:var(--amber);animation:blink 1.1s steps(1) infinite;vertical-align:-2px}
+.cmd .desc{color:var(--muted);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.clock{padding:0 14px;display:flex;align-items:center;gap:12px;color:var(--yellow);font-variant-numeric:tabular-nums;white-space:nowrap}
+.clock .live{color:var(--green)}
+.clock .live::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:6px;vertical-align:1px}
+@keyframes blink{50%{opacity:0}}
+
+main{max-width:1320px;margin:auto;padding:14px 16px 28px}
+
+/* --- Menu des fonctions, numérotées comme sur un terminal --- */
+.tabs{display:flex;flex-wrap:wrap;gap:2px;margin-bottom:12px;border-bottom:1px solid var(--line)}
+.tab{background:none;border:0;border-bottom:2px solid transparent;color:var(--text);font:500 14px var(--cond);padding:8px 14px 7px;cursor:pointer}
+.tab .key{color:var(--amber);font-family:var(--mono);font-size:12px;margin-right:4px}
+.tab:hover{background:#0e1218}
+.tab.active{background:var(--bar);border-bottom-color:var(--amber);color:#fff}
+.tab:focus-visible{outline:1px solid var(--amber);outline-offset:-1px}
+
+.grid{display:grid;grid-template-columns:340px minmax(0,1fr);gap:12px;align-items:start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:2px}
+.grid > .card{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow-y:auto;scrollbar-color:#333 transparent}
+form{padding:0 14px 16px}
+
+/* Titres de section : bandeau bleu pleine largeur, texte ambre */
+h2{margin:0 -14px 12px;padding:5px 14px;background:var(--bar);color:var(--amber);font:600 12px var(--mono);text-transform:uppercase;letter-spacing:.08em}
+form h2{margin-top:0}
+form h2 + .fields, form h2 + .hint{margin-top:0}
+.chart-card h2{margin:-14px -14px 12px}
+
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px 10px;margin-bottom:16px}
+.full{grid-column:1/-1}
+label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:3px}
+input,select{width:100%;background:#0d0f13;border:1px solid #343a44;border-radius:2px;color:var(--amber);padding:6px 8px;font:500 14px var(--mono);min-height:32px;font-variant-numeric:tabular-nums}
+input::placeholder{color:#5b616b}
+input:disabled{color:var(--muted);background:#0a0b0e}
+input:focus,select:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 1px var(--amber)}
+input:invalid:not(:focus):not(:placeholder-shown){border-color:var(--red)}
+select{appearance:none;cursor:pointer;padding-right:26px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0h10L5 6z' fill='%23ffa028'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center}
+select:disabled{opacity:.7;cursor:default}
+input[type=number]::-webkit-inner-spin-button{opacity:.35}
+.hint{font-size:12px;color:var(--muted);margin:6px 0 0}
+.check{display:flex;align-items:flex-start;gap:8px;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;margin:0}
+.check input{width:14px;height:14px;min-height:0;margin:2px 0 0;accent-color:var(--amber);flex:none}
+
+details{border-top:1px solid var(--line);padding-top:10px;margin-bottom:12px}
+details summary{cursor:pointer;color:var(--amber);font:500 12px var(--mono);text-transform:uppercase;letter-spacing:.06em;list-style:none}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:'+ ';color:var(--muted)}
+details[open] summary::before{content:'− '}
+
+button.primary{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;margin-top:4px;border:0;border-radius:2px;background:var(--amber);color:#000;padding:9px 14px;font:600 13px var(--mono);letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+button.primary::after{content:'GO';font-size:10px;border:1px solid #000;padding:0 5px;line-height:15px}
+button.primary:hover{background:#ffb34f}
+button.primary:focus-visible{outline:2px solid var(--yellow);outline-offset:2px}
+button.primary:disabled{opacity:.55;cursor:wait}
+.status{font:12px var(--mono);color:var(--green);margin:8px 0 0;min-height:18px}
+.status.error{color:var(--red)}
+
+/* --- Résultats --- */
+.results{display:flex;flex-direction:column;gap:12px;min-width:0}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);background:var(--panel);border:1px solid var(--line);border-bottom:0;border-radius:2px}
+.metric{padding:10px 14px 12px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-width:0}
+.metric:nth-child(3n){border-right:0}
+.metric p{margin:0 0 2px;font:500 11px var(--mono);color:var(--amber);text-transform:uppercase;letter-spacing:.06em}
+.metric strong{display:block;font:500 24px var(--mono);color:#fff;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.metric strong.pos{color:var(--green)}
+.metric strong.neg{color:var(--red)}
+.chart-card{padding:14px}
+svg{width:100%;height:auto;display:block}
+svg text{font:11px var(--mono);fill:var(--muted)}
+.greeks-table{width:100%;border-collapse:collapse;font:13px var(--mono);font-variant-numeric:tabular-nums}
+.greeks-table th,.greeks-table td{text-align:left;padding:5px 8px;border-bottom:1px solid #161a20}
+.greeks-table th{color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.greeks-table td:first-child{color:var(--amber)}
+.greeks-table td:not(:first-child){text-align:right;color:var(--text)}
+.greeks-table th:not(:first-child){text-align:right}
+.greeks-table tbody tr:nth-child(even){background:#0b0e13}
+.greeks-table tbody tr:hover{background:#121823}
+.chart-card details{border-top:0;margin:12px 0 0;padding-top:0}
+.chart-note{font-size:12px;color:var(--muted);margin:10px 0 0}
+.empty{border:1px dashed #2c323b;color:var(--muted);font:13px var(--mono);padding:48px 16px;text-align:center}
+.empty::after{content:'';display:inline-block;width:8px;height:14px;background:var(--amber);margin-left:6px;vertical-align:-2px;animation:blink 1.1s steps(1) infinite}
+.ticker-hit{padding:7px 10px;cursor:pointer;border-bottom:1px solid var(--line);font:13px var(--mono);background:#0d0f13}
+.ticker-hit:hover{background:var(--bar)}
+.ticker-hit strong{color:var(--amber)}
+[hidden]{display:none !important}
+@media (prefers-reduced-motion:reduce){.cmd .caret,.empty::after{animation:none}}
+@media(max-width:900px){
+  .grid{grid-template-columns:1fr}
+  .grid > .card{position:static;max-height:none}
+  .metrics{grid-template-columns:1fr 1fr}
+  .metric:nth-child(3n){border-right:1px solid var(--line)}
+  .metric:nth-child(2n){border-right:0}
+  .clock .date,.cmd .desc{display:none}
+}
+.structured-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}
+.structured-metrics .metric{border-right:1px solid var(--line)}
+.structured-metrics .metric:nth-child(4n){border-right:0}
+@media(max-width:1100px){.structured-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.structured-metrics .metric:nth-child(2n){border-right:0}}
+@media(max-width:550px){.structured-metrics{grid-template-columns:1fr}.structured-metrics .metric{border-right:0}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">PRICER</div>
+  <div class="cmd">
+    <span class="prompt">&gt;</span>
+    <span id="cmd-code">OPT</span>
+    <span class="go">&lt;GO&gt;</span>
+    <span class="caret" aria-hidden="true"></span>
+    <span class="desc" id="cmd-desc">Options vanilles</span>
+  </div>
+  <div class="clock"><span class="live">PARIS</span><span class="date" id="clock-date"></span><span id="clock-time"></span></div>
+</header>
+
+<main>
+
+  <div class="tabs" role="tablist">
+    <button class="tab active" data-tab="options"><span class="key">1)</span>Options</button>
+    <button class="tab" data-tab="forward"><span class="key">2)</span>Forward / Future</button>
+    <button class="tab" data-tab="strategies"><span class="key">3)</span>Stratégies</button>
+    <button class="tab" data-tab="structured"><span class="key">4)</span>Produits structurés</button>
+    <button class="tab" data-tab="chantier"><span class="key">5)</span>Chantier
+</button>
+  </div>
+
+  <!-- ===================== ONGLET OPTIONS ===================== -->
+  <section id="panel-options" class="grid">
+    <div class="card">
+      <form id="form-options"><div class="fields"><div class="full"><label>Instrument</label><select id="opt-instrument"><option value="vanilla">Option classique</option><option value="cash">Digitale cash-or-nothing</option><option value="asset">Digitale asset-or-nothing</option></select></div><div id="digital-payout-wrap" hidden><label>Paiement fixe de la digitale</label><input id="digital-payout" type="number" min="0" step="any" value="1"></div><p id="digital-note" class="hint" hidden>Digitale européenne : paiement fixe ou livraison du sous-jacent si la condition finale est satisfaite.</p></div>
+        <h2>Sous-jacent</h2>
+        <div class="fields">
+          <div class="full" style="position:relative">
+            <label for="opt-ticker">Chercher un ticker</label>
+            <input id="opt-ticker" type="text" placeholder="ex : AAPL, MC.PA..." autocomplete="off">
+            <div id="opt-ticker-results" class="card" style="position:absolute;z-index:10;width:100%;margin-top:2px;max-height:180px;overflow-y:auto;" hidden></div>
+            <p id="opt-ticker-status" class="hint"></p>
+          </div>
+        </div>
+        <h2>Paramètres du contrat</h2>
+        <div class="fields">
+          <div><label for="opt-side">Position</label>
+            <select id="opt-side"><option value="buy">Achat (long)</option><option value="sell">Vente (short)</option></select>
+          </div>
+          <div><label for="opt-type">Type</label>
+            <select id="opt-type"><option value="call">Call</option><option value="put">Put</option></select>
+          </div>
+          <div><label for="opt-style">Exercice</label>
+            <select id="opt-style"><option value="european">Européen</option><option value="american">Américain</option></select>
+          </div>
+          <div><label for="opt-method">Méthode</label>
+            <select id="opt-method"></select>
+          </div>
+          <div><label for="opt-s0">Spot S₀</label><input id="opt-s0" type="number" value="100" min="0.01" step="any"></div>
+          <div><label for="opt-k">Strike K</label><input id="opt-k" type="number" value="100" min="0.01" step="any"></div>
+          <div>
+            <label for="opt-sigma-source">Volatilité σ</label>
+            <select id="opt-sigma-source">
+              <option value="manual">Manuelle</option>
+              <option value="hist">Historique (1 an)</option>
+              <option value="vix">VIX (S&amp;P 500)</option>
+            </select>
+          </div>
+          <div id="opt-sigma-manual-wrap"><label for="opt-sigma">σ manuelle (%)</label><input id="opt-sigma" type="number" value="20" min="0.01" step="any"></div>
+          <div id="opt-sigma-mkt-wrap" hidden><label id="opt-sigma-mkt-label">σ marché</label><input id="opt-sigma-mkt-display" type="text" disabled></div>
+          <div><label for="opt-t">Maturité T (années)</label><input id="opt-t" type="number" value="1" min="0.001" step="any"></div>
+          <div><label for="opt-r">Taux r (%)</label><input id="opt-r" type="number" value="5" min="-20" step="any"></div>
+          <div><label for="opt-q">Dividende q (%)</label><input id="opt-q" type="number" value="0" min="0" step="any"></div>
+          <div class="full" id="opt-nsims-wrap" hidden>
+            <label for="opt-nsims">Nombre de simulations</label>
+            <input id="opt-nsims" type="number" value="30000" min="100" step="100">
+          </div>
+        </div>
+        <p class="hint" id="opt-k-hint"></p>
+        <button class="primary" type="submit">Calculer</button>
+        <p id="opt-status" class="status" role="status" aria-live="polite"></p>
+      </form>
+    </div>
+
+    <div class="results" id="opt-results">
+      <div class="empty">Lance un calcul pour voir les résultats.</div>
+    </div>
+  </section>
+
+  <!-- ===================== ONGLET FORWARD ===================== -->
+  <section id="panel-forward" class="grid" hidden>
+    <div class="card">
+      <form id="form-forward">
+        <h2>Paramètres du contrat à terme</h2>
+        <div class="fields">
+          <div class="full"><label for="fwd-side">Position</label>
+            <select id="fwd-side"><option value="buy">Achat (long)</option><option value="sell">Vente (short)</option></select>
+          </div>
+          <div><label for="fwd-s0">Spot S₀</label><input id="fwd-s0" type="number" value="100" min="0.01" step="any"></div>
+          <div><label for="fwd-k">Prix contractuel K</label><input id="fwd-k" type="number" value="100" min="0.01" step="any"></div>
+          <div><label for="fwd-t">Maturité T (années)</label><input id="fwd-t" type="number" value="1" min="0.001" step="any"></div>
+          <div><label for="fwd-r">Taux r (%)</label><input id="fwd-r" type="number" value="5" min="-20" step="any"></div>
+          <div class="full"><label for="fwd-q">Dividende q (%)</label><input id="fwd-q" type="number" value="0" min="0" step="any"></div>
+        </div>
+        <button class="primary" type="submit">Calculer</button>
+        <p id="fwd-status" class="status" role="status" aria-live="polite"></p>
+      </form>
+    </div>
+
+    <div class="results" id="fwd-results">
+      <div class="empty">Lance un calcul pour voir les résultats.</div>
+    </div>
+  </section>
+
+  <!-- ===================== ONGLET STRATÉGIES ===================== -->
+  <section id="panel-strategies" class="grid" hidden>
+    <div class="card">
+      <form id="form-strategy">
+        <h2>Sous-jacent</h2>
+        <div class="fields">
+          <div class="full" style="position:relative">
+            <label for="strat-ticker">Chercher un ticker</label>
+            <input id="strat-ticker" type="text" placeholder="ex : AAPL, MC.PA..." autocomplete="off">
+            <div id="strat-ticker-results" class="card" style="position:absolute;z-index:10;width:100%;margin-top:2px;max-height:180px;overflow-y:auto;" hidden></div>
+            <p id="strat-ticker-status" class="hint"></p>
+          </div>
+        </div>
+        <h2>Construire une stratégie</h2>
+        <div class="fields">
+          <div class="full"><label for="strat-name">Stratégie</label>
+            <select id="strat-name">
+              <option value="covered_call">Covered call</option>
+              <option value="protective_put">Protective put</option>
+              <option value="straddle">Straddle</option>
+              <option value="strangle">Strangle</option>
+              <option value="call_spread">Call spread</option>
+              <option value="put_spread">Put spread</option>
+              <option value="collar">Collar</option>
+            </select>
+          </div>
+
+          <div id="strat-side-wrap" class="full" hidden>
+            <label for="strat-side">Sens (call+put ensemble)</label>
+            <select id="strat-side"><option value="buy">Achat</option><option value="sell">Vente</option></select>
+          </div>
+
+<div><label for="strat-s0">Spot S₀</label><input id="strat-s0" type="number" value="100" min="0.01" step="any"></div>
+          <div id="strat-k-wrap"><label id="strat-k-label" for="strat-k">Strike K</label><input id="strat-k" type="number" value="100" min="0.01" step="any"></div>
+          <div id="strat-k1-wrap" hidden><label id="strat-k1-label" for="strat-k1">Strike K1</label><input id="strat-k1" type="number" value="95" min="0.01" step="any"></div>
+          <div id="strat-k2-wrap" hidden><label id="strat-k2-label" for="strat-k2">Strike K2</label><input id="strat-k2" type="number" value="110" min="0.01" step="any"></div>
+
+          
+          <div><label for="strat-t">Maturité T (années)</label><input id="strat-t" type="number" value="0.5" min="0.001" step="any"></div>
+          <div>
+            <label for="strat-sigma-source">Volatilité σ</label>
+            <select id="strat-sigma-source">
+              <option value="manual">Manuelle</option>
+              <option value="hist">Historique (1 an)</option>
+              <option value="vix">VIX (S&amp;P 500)</option>
+            </select>
+          </div>
+          <div id="strat-sigma-manual-wrap"><label for="strat-sigma">σ manuelle (%)</label><input id="strat-sigma" type="number" value="20" min="0.01" step="any"></div>
+          <div id="strat-sigma-mkt-wrap" hidden><label id="strat-sigma-mkt-label">σ marché</label><input id="strat-sigma-mkt-display" type="text" disabled></div>
+          <div><label for="strat-r">Taux r (%)</label><input id="strat-r" type="number" value="5" min="-20" step="any"></div>
+          <div><label for="strat-q">Dividende q (%)</label><input id="strat-q" type="number" value="0" min="0" step="any"></div>
+          <div><label for="strat-qty">Quantité</label><input id="strat-qty" type="number" value="1" min="0.01" step="any"></div>
+        </div>
+        <p class="hint" id="strat-k-hint"></p>
+        <button class="primary" type="submit">Calculer</button>
+        <p id="strat-status" class="status" role="status" aria-live="polite"></p>
+      </form>
+    </div>
+
+    <div class="results" id="strat-results">
+      <div class="empty">Lance un calcul pour voir les résultats.</div>
+    </div>
+  </section>
+
+  <!-- ===================== ONGLET PRODUITS STRUCTURÉS ===================== -->
+  <section id="panel-structured" class="grid" hidden>
+    <div class="card">
+      <div style="padding:0 14px 14px">
+        <h2>Produit</h2>
+        <label for="struct-product">Type de produit structuré</label>
+        <select id="struct-product">
+          <option value="" selected disabled>Choisir un produit</option>
+          <option value="dra">Dual Range Accrual</option><option value="accumulateur">Accumulateur</option><option value="decumulateur">Décumulateur</option><option value="phoenix">Phoenix</option>
+          <option value="autocall_plain">Autocall Plain — coupons accumulés</option>
+        </select>
+      </div>
+      <form id="form-dra" data-product="dra" hidden><h2>Dra · paramètres</h2><div class="fields"><div><label for="new-dra:S1_0">Spot 1</label><input id="new-dra:S1_0" name="S1_0" type="number" value="100" step="any" required></div><div><label for="new-dra:S2_0">Spot 2</label><input id="new-dra:S2_0" name="S2_0" type="number" value="100" step="any" required></div><div><label for="new-dra:sigma1">Volatilité 1 (%)</label><input id="new-dra:sigma1" name="sigma1" type="number" value="20" step="any" required></div><div><label for="new-dra:sigma2">Volatilité 2 (%)</label><input id="new-dra:sigma2" name="sigma2" type="number" value="25" step="any" required></div><div><label for="new-dra:q1">Dividende 1 (%)</label><input id="new-dra:q1" name="q1" type="number" value="2" step="any" required></div><div><label for="new-dra:q2">Dividende 2 (%)</label><input id="new-dra:q2" name="q2" type="number" value="2" step="any" required></div><div><label for="new-dra:rho">Corrélation (décimal)</label><input id="new-dra:rho" name="rho" type="number" value="0.3" step="any" required></div><div><label for="new-dra:L1">Borne basse 1</label><input id="new-dra:L1" name="L1" type="number" value="80" step="any" required></div><div><label for="new-dra:U1">Borne haute 1</label><input id="new-dra:U1" name="U1" type="number" value="120" step="any" required></div><div><label for="new-dra:L2">Borne basse 2</label><input id="new-dra:L2" name="L2" type="number" value="80" step="any" required></div><div><label for="new-dra:U2">Borne haute 2</label><input id="new-dra:U2" name="U2" type="number" value="120" step="any" required></div><div><label for="new-dra:taux_annuel">Coupon annuel maximum (%)</label><input id="new-dra:taux_annuel" name="taux_annuel" type="number" value="8" step="any" required></div><div><label for="new-dra:nominal">Nominal</label><input id="new-dra:nominal" name="nominal" type="number" value="1000" step="any" required></div><div><label for="new-dra:jours_par_an">Constats par an</label><input id="new-dra:jours_par_an" name="jours_par_an" type="number" value="252" step="any" required></div><div><label for="new-dra:frequence_paiement">Paiements par an</label><input id="new-dra:frequence_paiement" name="frequence_paiement" type="number" value="4" step="any" required></div><div><label for="new-dra:r">Taux (%)</label><input id="new-dra:r" name="r" type="number" value="3" step="any" required></div><div><label for="new-dra:T">Maturité (années)</label><input id="new-dra:T" name="T" type="number" value="1" step="any" required></div><div><label for="new-dra:n_simulations">Simulations</label><input id="new-dra:n_simulations" name="n_simulations" type="number" value="5000" step="any" required></div></div><p class="hint">Deux sous-jacents dans leurs fourchettes simultanément : coupon proratisé. Capital remboursé à maturité dans le modèle, hors défaut.</p><button class="primary" type="submit">Calculer</button><p id="dra-status" class="status"></p></form><form id="form-accumulateur" data-product="accumulateur" hidden><h2>Accumulateur · paramètres</h2><div class="fields"><div><label for="new-accumulateur:S0">Spot</label><input id="new-accumulateur:S0" name="S0" type="number" value="100" step="any" required></div><div><label for="new-accumulateur:sigma">Volatilité (%)</label><input id="new-accumulateur:sigma" name="sigma" type="number" value="20" step="any" required></div><div><label for="new-accumulateur:q">Dividende (%)</label><input id="new-accumulateur:q" name="q" type="number" value="2" step="any" required></div><div><label for="new-accumulateur:K">Strike absolu</label><input id="new-accumulateur:K" name="K" type="number" value="95" step="any" required></div><div><label for="new-accumulateur:B_KO">Seuil KO absolu</label><input id="new-accumulateur:B_KO" name="B_KO" type="number" value="110" step="any" required></div><div><label for="new-accumulateur:quantite">Quantité par constat</label><input id="new-accumulateur:quantite" name="quantite" type="number" value="1" step="any" required></div><div><label for="new-accumulateur:levier">Levier si défavorable</label><input id="new-accumulateur:levier" name="levier" type="number" value="2" step="any" required></div><div><label for="new-accumulateur:n_garanties">Nombre de constats initiaux sans KO</label><input id="new-accumulateur:n_garanties" name="n_garanties" type="number" value="0" step="any" required></div><div><label for="new-accumulateur:frequence">Constats par an (1, 2, 4 ou 12)</label><input id="new-accumulateur:frequence" name="frequence" type="number" value="12" step="any" required></div><div><label for="new-accumulateur:r">Taux (%)</label><input id="new-accumulateur:r" name="r" type="number" value="3" step="any" required></div><div><label for="new-accumulateur:T">Maturité (années)</label><input id="new-accumulateur:T" name="T" type="number" value="1" step="any" required></div><div><label for="new-accumulateur:n_simulations">Simulations</label><input id="new-accumulateur:n_simulations" name="n_simulations" type="number" value="10000" step="any" required></div></div><div class="fields"><label><input name="ko_inclut_date" type="checkbox"> Inclure l’opération du jour du KO</label></div><p class="hint">P&L des achats / ventes à chaque constat. Le levier augmente les quantités dans le scénario défavorable. Aucun remboursement de nominal.</p><button class="primary" type="submit">Calculer</button><p id="accumulateur-status" class="status"></p></form><form id="form-decumulateur" data-product="decumulateur" hidden><h2>Decumulateur · paramètres</h2><div class="fields"><div><label for="new-decumulateur:S0">Spot</label><input id="new-decumulateur:S0" name="S0" type="number" value="100" step="any" required></div><div><label for="new-decumulateur:sigma">Volatilité (%)</label><input id="new-decumulateur:sigma" name="sigma" type="number" value="20" step="any" required></div><div><label for="new-decumulateur:q">Dividende (%)</label><input id="new-decumulateur:q" name="q" type="number" value="2" step="any" required></div><div><label for="new-decumulateur:K">Strike absolu</label><input id="new-decumulateur:K" name="K" type="number" value="105" step="any" required></div><div><label for="new-decumulateur:B_KO">Seuil KO absolu</label><input id="new-decumulateur:B_KO" name="B_KO" type="number" value="90" step="any" required></div><div><label for="new-decumulateur:quantite">Quantité par constat</label><input id="new-decumulateur:quantite" name="quantite" type="number" value="1" step="any" required></div><div><label for="new-decumulateur:levier">Levier si défavorable</label><input id="new-decumulateur:levier" name="levier" type="number" value="2" step="any" required></div><div><label for="new-decumulateur:n_garanties">Nombre de constats initiaux sans KO</label><input id="new-decumulateur:n_garanties" name="n_garanties" type="number" value="0" step="any" required></div><div><label for="new-decumulateur:frequence">Constats par an (1, 2, 4 ou 12)</label><input id="new-decumulateur:frequence" name="frequence" type="number" value="12" step="any" required></div><div><label for="new-decumulateur:r">Taux (%)</label><input id="new-decumulateur:r" name="r" type="number" value="3" step="any" required></div><div><label for="new-decumulateur:T">Maturité (années)</label><input id="new-decumulateur:T" name="T" type="number" value="1" step="any" required></div><div><label for="new-decumulateur:n_simulations">Simulations</label><input id="new-decumulateur:n_simulations" name="n_simulations" type="number" value="10000" step="any" required></div></div><div class="fields"><label><input name="ko_inclut_date" type="checkbox"> Inclure l’opération du jour du KO</label></div><p class="hint">P&L des achats / ventes à chaque constat. Le levier augmente les quantités dans le scénario défavorable. Aucun remboursement de nominal.</p><button class="primary" type="submit">Calculer</button><p id="decumulateur-status" class="status"></p></form><form id="form-phoenix" data-product="phoenix" hidden>
+        <h2>Sous-jacent</h2>
+        <div class="fields">
+          <div class="full" style="position:relative">
+            <label for="phx-ticker">Chercher un ticker (facultatif)</label>
+            <input id="phx-ticker" type="text" placeholder="ex : AAPL, MC.PA..." autocomplete="off">
+            <div id="phx-ticker-results" class="card" style="position:absolute;z-index:10;width:100%;margin-top:2px;max-height:180px;overflow-y:auto;" hidden></div>
+            <p id="phx-ticker-status" class="hint">Sans ticker, le sous-jacent part de 100.</p>
+          </div>
+          <div>
+            <label for="phx-sigma-source">Volatilité σ</label>
+            <select id="phx-sigma-source">
+              <option value="manual">Manuelle</option>
+              <option value="hist">Historique (1 an)</option>
+              <option value="vix">VIX (S&amp;P 500)</option>
+            </select>
+          </div>
+          <div id="phx-sigma-manual-wrap"><label for="phx-sigma">σ (%)</label><input id="phx-sigma" type="number" value="25" min="0.01" max="200" step="any" required></div>
+          <div id="phx-sigma-mkt-wrap" hidden><label id="phx-sigma-mkt-label">σ marché</label><input id="phx-sigma-mkt-display" type="text" disabled></div>
+          <div><label for="phx-r">Taux r (%)</label><input id="phx-r" type="number" value="3" min="-50" max="50" step="any" required></div>
+          <div><label for="phx-q">Dividende q (%)</label><input id="phx-q" type="number" value="2" min="0" max="50" step="any" required></div>
+        </div>
+
+        <h2>Durée</h2>
+        <div class="fields">
+          <div><label for="phx-nominal">Montant investi</label><input id="phx-nominal" type="number" value="1000" min="1" step="any" required></div>
+          <div><label for="phx-freq">Observations</label>
+            <select id="phx-freq">
+              <option value="1">Annuelles</option>
+              <option value="2" selected>Semestrielles</option>
+              <option value="4">Trimestrielles</option>
+              <option value="12">Mensuelles</option>
+            </select>
+          </div>
+          <div class="full"><label for="phx-months">Maturité (mois)</label>
+            <input id="phx-months" type="number" value="36" min="6" max="360" step="6" required>
+            <p class="hint" id="phx-dates-hint"></p>
+          </div>
+        </div>
+
+        <h2>Coupons</h2>
+        <div class="fields">
+          <div class="full"><label for="phx-coupon">Coupon par période (%)</label><input id="phx-coupon" type="number" value="4" min="0" max="100" step="any" required></div>
+          <label class="check full"><input id="phx-stepup-on" type="checkbox"> Coupon step-up : il augmente à chaque période</label>
+          <div class="full" id="phx-stepup-wrap" hidden><label for="phx-stepup">Hausse par période (%)</label><input id="phx-stepup" type="number" value="0.5" min="0.01" max="10" step="any"></div>
+          <label class="check full"><input id="phx-memory" type="checkbox"> Effet mémoire : un coupon manqué est rattrapé plus tard</label>
+        </div>
+
+        <h2>Barrières</h2>
+        <p class="hint" style="margin:0 0 10px">En % du niveau du sous-jacent au lancement.</p>
+        <div class="fields">
+          <label class="check full"><input id="phx-autocall" type="checkbox" checked> Remboursement anticipé possible (autocall)</label>
+          <div class="full"><label for="phx-kauto">Remboursement anticipé (%)</label>
+            <input id="phx-kauto" type="number" value="100" min="1" max="300" step="any" required>
+            <p class="hint" id="phx-kauto-hint"></p></div>
+          <div class="full"><label for="phx-bcoupon">Coupon versé (%)</label>
+            <input id="phx-bcoupon" type="number" value="70" min="1" max="300" step="any" required>
+            <p class="hint" id="phx-bcoupon-hint"></p></div>
+          <div class="full"><label for="phx-bpdi">Capital protégé (%)</label>
+            <input id="phx-bpdi" type="number" value="60" min="1" max="300" step="any" required>
+            <p class="hint" id="phx-bpdi-hint"></p></div>
+        </div>
+
+        <details style="margin-top:14px">
+          <summary>Bonus (facultatif)</summary>
+          <div class="fields" style="margin-top:12px">
+            <div><label for="phx-bonus-threshold">Seuil du bonus (%)</label><input id="phx-bonus-threshold" type="number" min="1" max="300" step="any" placeholder="aucun"></div>
+            <div><label for="phx-bonus-amount">Bonus (% investi)</label><input id="phx-bonus-amount" type="number" value="0" min="0" max="100" step="any"></div>
+          </div>
+        </details>
+
+        <div class="fields" style="margin-top:16px">
+          <div class="full"><label for="phx-nsims">Nombre de simulations Monte Carlo</label><input id="phx-nsims" type="number" value="50000" min="1000" max="500000" step="1000" required>
+            <p class="hint">Plus il y en a, plus le prix est précis, mais plus le calcul est long.</p></div>
+        </div>
+
+        <div class="fields"><div class="full"><label for="phx-step-down">Step-down du rappel par constat (points de % du niveau de référence)</label><input id="phx-step-down" type="number" value="0" min="0" step="0.1"><p class="hint">0 : désactivé. Baisse dès le deuxième constat. Coupon final du Plain inchangé ; ignoré sans rappel.</p></div></div><button class="primary" type="submit">Calculer</button>
+        <p id="phx-status" class="status" role="status" aria-live="polite"></p>
+      </form>
+<form id="form-autocall_plain" data-product="autocall_plain" hidden>
+      <h2>Sous-jacent</h2>
+      <div class="fields">
+        <div class="full" style="position:relative"><label for="ac-plain-ticker">Chercher un ticker (facultatif)</label>
+          <input id="ac-plain-ticker" autocomplete="off" placeholder="ex : AAPL, MC.PA…">
+          <div id="ac-plain-suggestions" class="card" style="position:absolute;z-index:10;width:100%;max-height:180px;overflow:auto" hidden></div>
+          <p id="ac-plain-market-status" class="hint" role="status">Sans ticker, le sous-jacent part de 100.</p>
+        </div><input id="ac-plain-s0" type="hidden" value="100">
+        <div><label for="ac-plain-sigma-source">Volatilité σ</label>
+          <select id="ac-plain-sigma-source"><option value="manual">Manuelle</option><option value="hist">Historique (1 an)</option><option value="vix">VIX (S&amp;P 500)</option></select>
+        </div>
+        <div id="ac-plain-sigma-manual-wrap"><label for="ac-plain-sigma">σ (%)</label><input id="ac-plain-sigma" type="number" value="25" min="0.01" max="200" step="any" required></div>
+        <div id="ac-plain-sigma-mkt-wrap" hidden><label id="ac-plain-sigma-mkt-label">σ marché</label><input id="ac-plain-sigma-mkt-display" type="text" disabled></div><div class=""><label for="ac-plain-r">Taux r (%)</label><input id="ac-plain-r" type="number" value="3" min="-50" max="50" step="any" required></div><div class=""><label for="ac-plain-q">Dividende q (%)</label><input id="ac-plain-q" type="number" value="2" min="0" max="50" step="any" required></div>
+      </div>
+      <h2>Durée et nominal</h2><div class="fields"><div class=""><label for="ac-plain-nominal">Montant investi</label><input id="ac-plain-nominal" type="number" value="1000" min="0.01" max="1000000000000.0" step="any" required></div><div><label for="ac-plain-freq">Observations</label><select id="ac-plain-freq"><option value="1">Annuelles</option><option value="2" selected>Semestrielles</option><option value="4">Trimestrielles</option><option value="12">Mensuelles</option></select></div><div class="full"><label for="ac-plain-months">Maturité (mois)</label><input id="ac-plain-months" type="number" value="36" min="1" max="360" step="1" required></div><div class="full"><label for="ac-plain-first">Premier rappel autorisé à partir de (mois)</label><input id="ac-plain-first" type="number" value="6" min="0" max="360" step="1" required></div></div>
+      <label class="check"><input id="ac-plain-autocall" type="checkbox" checked> Remboursement anticipé possible (autocall)</label>
+      <h2>Coupons et barrières</h2>
+      <p id="ac-plain-rules" class="hint" style="margin-bottom:12px">Coupons accumulés payés au rappel ; à maturité, tous les coupons uniquement si le seuil final est atteint. Les barrières sont exprimées en % du spot initial.</p>
+      <div class="fields"><div class="full"><label for="ac-plain-coupon">Coupon par observation (%)</label><input id="ac-plain-coupon" type="number" value="4" min="0" max="100" step="any" required></div><div class="full"><label for="ac-plain-barrier">Rappel et coupon final (%)</label><input id="ac-plain-barrier" type="number" value="100" min="0.01" max="300" step="any" required></div><label class="check full"><input id="ac-plain-protection" type="checkbox" checked> Protection conditionnelle à maturité</label><div class="full"><label for="ac-plain-ki">Barrière de protection (%)</label><input id="ac-plain-ki" type="number" value="60" min="0.01" max="100" step="any" required></div></div>
+      <p class="hint">Sous la protection à maturité : remboursement du capital = nominal × niveau final / spot initial. Sans cette protection, le modèle rembourse le nominal.</p>
+      <h2 style="margin-top:16px">Simulation</h2><div class="fields"><div class="full"><label for="ac-plain-nsims">Nombre de simulations</label><input id="ac-plain-nsims" type="number" value="50000" min="1000" max="500000" step="1000" required></div></div>
+      <div class="fields"><div class="full"><label for="ac-plain-step-down">Step-down du rappel par constat (points de % du niveau de référence)</label><input id="ac-plain-step-down" type="number" value="0" min="0" step="0.1"><p class="hint">0 : désactivé. Baisse dès le deuxième constat. Coupon final du Plain inchangé ; ignoré sans rappel.</p></div></div><button class="primary" type="submit">Calculer</button><p id="ac-plain-status" class="status" role="status" aria-live="polite"></p>
+    </form>
+
+    </div>
+
+    <div class="results" id="phx-results">
+      <div class="empty">Choisis un produit pour afficher ses réglages.</div>
+    </div>
+  </section>
+  <!-- ===================== ONGLET CHANTIER ===================== -->
+
+<section id="panel-chantier" class="grid" hidden>
+  <div class="card">
+    <form id="vol-form" style="padding-top:14px">
+      <h2>Laboratoire quantitatif</h2>
+      <div class="fields">
+        <div class="full">
+          <label for="chantier-module">Sélectionner un module</label>
+          <select id="chantier-module">
+            <option value="volatility">Volatilité</option>
+            <option value="rates" disabled>Modèles de taux — à venir</option>
+          </select>
+        </div>
+        <div class="full" style="position:relative">
+          <label for="vol-ticker">Chercher un ticker</label>
+          <input id="vol-ticker" required autocomplete="off" placeholder="ex : AAPL, MSFT, MC.PA…" aria-controls="vol-suggestions">
+          <div id="vol-suggestions" class="card" style="position:absolute;z-index:10;width:100%;max-height:180px;overflow-y:auto" hidden></div>
+          <p id="vol-search-status" class="hint" role="status"></p>
+        </div>
+        <div class="full">
+          <label for="vol-period">Période historique</label>
+          <select id="vol-period">
+            <option value="6mo">6 mois</option><option value="1y" selected>1 an</option>
+            <option value="2y">2 ans</option><option value="5y">5 ans</option>
+          </select>
+        </div>
+        <div class="full">
+          <label for="vol-lambda">Mémoire EWMA · λ</label>
+          <input id="vol-lambda" type="number" min="0.01" max="0.99" step="0.01" value="0.94" required>
+          <p class="hint">Plus λ est élevé, plus la mémoire est longue.</p>
+        </div>
+      </div>
+      <button id="vol-calculate" class="primary" type="submit">Calculer</button>
+      <p id="vol-status" class="status" role="status" aria-live="polite"></p>
+      <p class="hint">Volatilités historiques annualisées · fenêtres de 20 et 60 séances · EWMA · Parkinson.</p>
+      <details style="margin-top:14px">
+        <summary>Comprendre les mesures</summary>
+        <p class="hint">Historique : dispersion des rendements entre clôtures. Les fenêtres 20 et 60 donnent deux horizons de lecture.</p>
+        <p class="hint">EWMA : les chocs récents pèsent davantage. Avec λ = 0,94, chaque mise à jour conserve 94 % de la variance précédente et ajoute 6 % du rendement au carré.</p>
+        <p class="hint">Parkinson : amplitude entre le plus haut et le plus bas de chaque séance. L'indicateur couvre la période choisie ; la courbe couvre les 20 dernières séances de chaque date. Les gaps de nuit sont mal capturés.</p>
+        <p class="hint">Annualisation : 252 séances/an. EWMA suppose une moyenne nulle et démarre au carré du premier rendement. Changer la période peut donc modifier son initialisation.</p>
+      </details>
+    </form>
+  </div>
+  <div class="results" id="chantier-results" aria-busy="false">
+    <div class="empty">Saisissez un ticker puis lancez le calcul.</div>
+  </div>
+</section>
+
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+
+// -------- Formats de nombres (un seul endroit) --------
+const FORMAT_2 = new Intl.NumberFormat('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const FORMAT_4 = new Intl.NumberFormat('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 4});
+const fmt = x => FORMAT_4.format(x);                                 // valeurs : 2 à 4 décimales
+const fmt2 = x => x == null ? '—' : FORMAT_2.format(x);              // indicateurs : 2 décimales
+const fmtPct = x => x == null ? '—' : FORMAT_2.format(x) + ' %';     // pourcentages
+
+// -------- Navigation entre onglets --------
+// Chaque onglet a un code de fonction affiché dans la barre de commande.
+const FONCTIONS = {
+  options:    ['OPT',   'Options vanilles'],
+  forward:    ['FWD',   'Contrats à terme'],
+  strategies: ['STRAT', 'Stratégies optionnelles'],
+  structured: ['STRC',  'Produits structurés'],
+  chantier:   ['LAB',   'Laboratoire quantitatif'],
+};
+function ouvrirOnglet(nom) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === nom));
+  Object.keys(FONCTIONS).forEach(n => { $('panel-' + n).hidden = (n !== nom); });
+  $('cmd-code').textContent = FONCTIONS[nom][0];
+  $('cmd-desc').textContent = FONCTIONS[nom][1];
+}
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => ouvrirOnglet(btn.dataset.tab));
+});
+// Raccourcis clavier 1 à 5, sauf pendant une saisie dans un champ.
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+  const nom = Object.keys(FONCTIONS)[Number(e.key) - 1];
+  if (nom) ouvrirOnglet(nom);
+});
+// Horloge de Paris dans la barre du haut.
+function majHorloge() {
+  const maintenant = new Date();
+  $('clock-time').textContent = maintenant.toLocaleTimeString('fr-FR', {timeZone: 'Europe/Paris'});
+  $('clock-date').textContent = maintenant.toLocaleDateString('fr-FR', {timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', year: 'numeric'});
+}
+majHorloge();
+setInterval(majHorloge, 1000);
+
+// -------- Appels au serveur (un seul point d'entrée) --------
+// JSON en entrée et en sortie, message d'erreur du serveur, délai maximal.
+// controleur : AbortController fourni par l'appelant pour annuler une requête devenue inutile.
+async function appelApi(url, {payload, timeout = 300000, controleur = new AbortController()} = {}) {
+  let delaiDepasse = false;
+  const minuteur = setTimeout(() => { delaiDepasse = true; controleur.abort(); }, timeout);
+  try {
+    const options = {signal: controleur.signal};
+    if (payload !== undefined) {
+      Object.assign(options, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+    }
+    const res = await fetch(url, options);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erreur inconnue.');
+    return data;
+  } catch (err) {
+    if (delaiDepasse) throw new Error('Délai dépassé : réduisez le calcul (simulations, période) et réessayez.');
+    throw err;
+  } finally {
+    clearTimeout(minuteur);
+  }
+}
+
+// -------- Comportement commun à tous les formulaires --------
+// Bouton bloqué pendant le calcul, message d'attente, erreur en rouge.
+// calcul() renvoie le message de succès (ou rien si le résultat est devenu inutile).
+function surSoumission(form, status, calcul, {avant, attente = 'Calcul en cours...'} = {}) {
+  const bouton = form.querySelector('button[type=submit]');
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    if (avant) avant();
+    if (bouton.disabled || !form.reportValidity()) return;
+    bouton.disabled = true;
+    status.className = 'status';
+    status.textContent = attente;
+    try {
+      status.textContent = await calcul() || '';
+    } catch (err) {
+      status.className = 'status error';
+      status.textContent = err.message;
+    } finally {
+      bouton.disabled = false;
+    }
+  });
+}
+
+// -------- Petit moteur de tracé SVG générique (payoff/pnl vs ST) --------
+let chartId = 0;   // identifiant unique par graphe (pour les zones de découpe SVG)
+function renderChart(ST_grid, series, breakevens, opts = {}) {
+  const W=760, H=340, L=60, R=16, top=34, bottom=44;
+  const id = ++chartId;
+  const xmin = ST_grid[0], xmax = ST_grid[ST_grid.length-1];
+  const allValues = series.flatMap(s => s.values);
+  const pad = Math.max((Math.max(...allValues) - Math.min(...allValues)) * .12, 1);
+  const ymin = Math.min(0, ...allValues) - pad, ymax = Math.max(0, ...allValues) + pad;
+
+  const X = x => L + (x-xmin)/(xmax-xmin) * (W-L-R);
+  const Y = y => top + (ymax-y)/(ymax-ymin) * (H-top-bottom);
+  const nb = v => new Intl.NumberFormat('fr-FR', {maximumFractionDigits: 2}).format(v);
+
+  const colors = {payoff:'#5cc8ff', pnl:'#ffa028'};
+  const dash = {payoff:'6 5', pnl:'0'};
+  const labels = Object.assign({payoff:'Payoff brut', pnl:'P&L net (après prime)'}, opts.labels || {});
+
+  let content = `<rect x="0" y="0" width="${W}" height="${H}" fill="#000"/>`;
+  for (let i=0;i<=4;i++){
+    const y = ymin + (ymax-ymin)*i/4;
+    content += `<line x1="${L}" x2="${W-R}" y1="${Y(y)}" y2="${Y(y)}" stroke="#1a1f27"/>`;
+    content += `<text x="${L-8}" y="${Y(y)+4}" text-anchor="end">${nb(y)}</text>`;
+  }
+  for (let i=0;i<=5;i++){
+    const x = xmin + (xmax-xmin)*i/5;
+    content += `<line x1="${X(x)}" x2="${X(x)}" y1="${top}" y2="${H-bottom}" stroke="#12161c"/>`;
+    content += `<text x="${X(x)}" y="${H-bottom+20}" text-anchor="middle">${nb(x)}</text>`;
+  }
+  content += `<text x="${(W+L-R)/2}" y="${H-6}" text-anchor="middle">${opts.xLabel || 'Prix du sous-jacent à maturité'}</text>`;
+
+  // Zones de gain (vert) et de perte (rouge) sous la courbe de P&L
+  const zero = Y(0);
+  content += `<defs>
+    <clipPath id="haut${id}"><rect x="${L}" y="${top}" width="${W-L-R}" height="${zero-top}"/></clipPath>
+    <clipPath id="bas${id}"><rect x="${L}" y="${zero}" width="${W-L-R}" height="${H-bottom-zero}"/></clipPath>
+  </defs>`;
+  const pnlSerie = series.find(s => s.key === 'pnl');
+  if (pnlSerie) {
+    const pts = ST_grid.map((x,i) => `L${X(x).toFixed(2)},${Y(pnlSerie.values[i]).toFixed(2)}`).join(' ');
+    const aire = `M${X(xmin)},${zero} ${pts} L${X(xmax)},${zero} Z`;
+    content += `<path d="${aire}" fill="#3ddc84" fill-opacity=".14" clip-path="url(#haut${id})"/>`;
+    content += `<path d="${aire}" fill="#ff5c5c" fill-opacity=".14" clip-path="url(#bas${id})"/>`;
+  }
+  content += `<line x1="${L}" x2="${W-R}" y1="${zero}" y2="${zero}" stroke="#5b616b"/>`;
+
+  // Lignes verticales (barrières d'un produit structuré, par exemple)
+  (opts.markers || []).forEach((m, i) => {
+    if (m.x < xmin || m.x > xmax) return;
+    content += `<line x1="${X(m.x)}" x2="${X(m.x)}" y1="${top}" y2="${H-bottom}" stroke="${m.color}" stroke-dasharray="2 4"/>`;
+    content += `<text x="${X(m.x)+5}" y="${top + 14 + i*14}" text-anchor="start" style="fill:${m.color};paint-order:stroke;stroke:#000;stroke-width:4px">${m.label}</text>`;
+  });
+
+  series.forEach(s => {
+    const path = ST_grid.map((x,i) => (i?'L':'M') + X(x).toFixed(2) + ',' + Y(s.values[i]).toFixed(2)).join(' ');
+    content += `<path d="${path}" fill="none" stroke="${colors[s.key]||'#ffa028'}" stroke-width="${s.key==='pnl'?2.2:1.6}" stroke-dasharray="${dash[s.key]||'0'}" stroke-linejoin="round"/>`;
+  });
+
+  (breakevens||[]).forEach(be => {
+    content += `<line x1="${X(be)}" x2="${X(be)}" y1="${top}" y2="${H-bottom}" stroke="#f5d547" stroke-dasharray="3 4"/>`;
+    content += `<circle cx="${X(be)}" cy="${zero}" r="4" fill="#000" stroke="#f5d547" stroke-width="1.6"/>`;
+    content += `<text x="${X(be)+6}" y="${zero-8}" text-anchor="start" style="fill:#f5d547;paint-order:stroke;stroke:#000;stroke-width:4px">${nb(be)}</text>`;
+  });
+
+  // Légende
+  let legendX = L;
+  const legendY = top - 14;
+  series.forEach(s => {
+    const label = labels[s.key] || s.key;
+    content += `<line x1="${legendX}" x2="${legendX+18}" y1="${legendY}" y2="${legendY}" stroke="${colors[s.key]||'#ffa028'}" stroke-width="2" stroke-dasharray="${dash[s.key]||'0'}"/>`;
+    content += `<text x="${legendX+24}" y="${legendY+4}" text-anchor="start" style="fill:#c9ccd1">${label}</text>`;
+    legendX += 24 + label.length * 6.7 + 22;
+  });
+  if ((breakevens||[]).length) {
+    content += `<circle cx="${legendX+5}" cy="${legendY}" r="4" fill="#000" stroke="#f5d547" stroke-width="1.6"/>`;
+    content += `<text x="${legendX+15}" y="${legendY+4}" text-anchor="start" style="fill:#c9ccd1">Breakeven</text>`;
+  }
+
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Payoff et P&amp;L à maturité">${content}</svg>`;
+}
+
+function greeksTable(dict, order) {
+  const keys = order || Object.keys(dict);
+  const rows = keys.filter(k => k in dict).map(k => `<tr><td>${k}</td><td>${fmt(dict[k])}</td></tr>`).join('');
+  return `<table class="greeks-table"><thead><tr><th>Grecque</th><th>Valeur</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// -------- Recherche de ticker commune aux cinq formulaires --------
+// Temporisation de 350 ms, annulation de la requête précédente, compteur de version
+// (une réponse lente pour « AA » n'écrase pas celle de « AAPL ») et aucun HTML injecté.
+// Renvoie une fonction qui ferme la liste et annule la recherche en cours.
+function brancherRechercheTicker({inputId, resultsId, statusId, onSelect, saisieLibre = false}) {
+  const input = $(inputId), boite = $(resultsId), status = $(statusId);
+  let version = 0, minuteur, controleur;
+  const fermer = () => { ++version; clearTimeout(minuteur); controleur?.abort(); boite.hidden = true; };
+
+  input.addEventListener('input', () => {
+    fermer();
+    const maVersion = version, query = input.value.trim();
+    boite.replaceChildren();
+    if (!query) return;
+    minuteur = setTimeout(async () => {
+      controleur = new AbortController();
+      status.textContent = 'Recherche…';
+      try {
+        const data = await appelApi('/api/search_ticker?q=' + encodeURIComponent(query), {controleur, timeout: 15000});
+        if (maVersion !== version) return;
+        const hits = (data.results || []).filter(hit => typeof hit.symbol === 'string');
+        status.textContent = hits.length ? 'Sélectionnez un ticker.'
+          : 'Aucun résultat.' + (saisieLibre ? ' Vous pouvez saisir un symbole directement.' : '');
+        for (const hit of hits) {
+          const ligne = document.createElement('button');
+          ligne.type = 'button';
+          ligne.className = 'ticker-hit';
+          ligne.style.cssText = 'display:block;width:100%;text-align:left;color:var(--text);border:0;border-bottom:1px solid var(--line)';
+          const symbole = document.createElement('strong');
+          symbole.textContent = hit.symbol;
+          const bourse = document.createElement('span');
+          bourse.style.color = 'var(--muted)';
+          bourse.textContent = hit.exchange || '';
+          ligne.append(symbole, ` — ${hit.name || ''} `, bourse);
+          ligne.addEventListener('click', () => {
+            fermer();
+            input.value = hit.symbol;
+            status.textContent = hit.symbol;
+            onSelect(hit.symbol, status);
+          });
+          boite.append(ligne);
+        }
+        boite.hidden = !boite.children.length;
+      } catch (err) {
+        if (maVersion === version && err.name !== 'AbortError') {
+          status.textContent = 'Recherche indisponible.' + (saisieLibre ? ' Saisissez le symbole directement.' : '');
+        }
+      }
+    }, 350);
+  });
+  input.addEventListener('keydown', e => { if (e.key === 'Escape') fermer(); });
+  document.addEventListener('click', e => { if (e.target !== input && !boite.contains(e.target)) boite.hidden = true; });
+  return fermer;
+}
+
+// -------- Données de marché d'un ticker (commun à tous les onglets) --------
+// Compteur de version par champ de statut : seule la dernière sélection s'affiche.
+async function chargerMarche(symbol, status, appliquer, bouton) {
+  const version = status.dataset.version = String(Number(status.dataset.version || 0) + 1);
+  if (bouton) bouton.disabled = true;
+  status.textContent = 'Récupération des données de marché…';
+  try {
+    const data = await appelApi('/api/market/' + encodeURIComponent(symbol), {timeout: 30000});
+    if (version !== status.dataset.version) return;
+    if (!(Number.isFinite(data.S0) && data.S0 > 0)) throw new Error('Spot indisponible.');
+    appliquer(data);
+    status.textContent = `${symbol} (${data.devise || ''}) · spot ${data.S0} · vol. historique ${fmtPct(data.vol_hist)} · VIX ${fmtPct(data.vix)}`;
+  } catch (err) {
+    if (version === status.dataset.version) status.textContent = 'Erreur : ' + err.message;
+  } finally {
+    if (bouton && version === status.dataset.version) bouton.disabled = false;
+  }
+}
+
+// -------- Volatilité : manuelle, historique 1 an ou VIX --------
+// Les vols de marché sont gardées par onglet ('opt', 'strat', 'phx', 'ac-plain') après la recherche d'un ticker.
+const volMarche = {};
+const LIBELLES_VOL = {hist: 'σ historique 1 an', vix: 'σ = VIX'};
+
+function afficherSigma(p) {
+  const source = $(p + '-sigma-source').value;
+  const manuelle = source === 'manual';
+  $(p + '-sigma-manual-wrap').hidden = !manuelle;
+  $(p + '-sigma-mkt-wrap').hidden = manuelle;
+  $(p + '-sigma').required = manuelle;
+  if (!manuelle) {
+    $(p + '-sigma-mkt-label').textContent = LIBELLES_VOL[source];
+    const v = (volMarche[p] || {})[source];
+    $(p + '-sigma-mkt-display').value = v == null ? 'cherche un ticker' : fmtPct(v);
+  }
+}
+function wireSigma(p) {
+  $(p + '-sigma-source').addEventListener('change', () => afficherSigma(p));
+  afficherSigma(p);
+}
+// Après la recherche : conserver historique et VIX pour cet onglet.
+function setVolMarche(p, data) {
+  volMarche[p] = {hist: data.vol_hist, vix: data.vix};
+  $(p + '-sigma-source').value = data.vol_hist != null ? 'hist' : 'vix';
+  afficherSigma(p);
+}
+function lireSigma(p) {
+  const source = $(p + '-sigma-source').value;
+  if (source === 'manual') return $(p + '-sigma').value;
+  const v = (volMarche[p] || {})[source];
+  if (v == null) {
+    throw new Error(source === 'hist'
+      ? "Cherche d'abord un ticker pour calculer sa volatilité historique."
+      : "Cherche d'abord un ticker pour récupérer le VIX.");
+  }
+  return v;
+}
+
+// -------- Strikes bornés autour du spot --------
+// Les bornes viennent du serveur (/api/config) : la règle n'est écrite que dans validation.py.
+const moneyness = {min: null, max: null};
+const arrondi = x => Math.round(x * 100) / 100;
+function bindStrikeBounds(spotId, strikeIds, hintId) {
+  const update = () => {
+    const S0 = Number($(spotId).value);
+    if (!(S0 > 0) || moneyness.min == null) return;
+    // ceil / floor pour que les bornes affichées restent dans l'intervalle accepté par le serveur
+    const lo = Math.ceil(S0 * moneyness.min * 100) / 100;
+    const hi = Math.floor(S0 * moneyness.max * 100) / 100;
+    strikeIds.forEach(id => { $(id).min = lo; $(id).max = hi; });
+    $(hintId).textContent = `Strike(s) entre ${fmt(lo)} et ${fmt(hi)}, soit ${Math.round(moneyness.min*100)} % à ${Math.round(moneyness.max*100)} % du spot.`;
+  };
+  $(spotId).addEventListener('input', update);
+  return update;
+}
+const updateOptStrikes = bindStrikeBounds('opt-s0', ['opt-k'], 'opt-k-hint');
+const updateStratStrikes = bindStrikeBounds('strat-s0', ['strat-k', 'strat-k1', 'strat-k2'], 'strat-k-hint');
+appelApi('/api/config', {timeout: 10000}).then(config => {
+  moneyness.min = config.moneyness_min;
+  moneyness.max = config.moneyness_max;
+  updateOptStrikes();
+  updateStratStrikes();
+}).catch(() => { /* le serveur revalide de toute façon les strikes */ });
+
+// -------- Onglet Options --------
+// Méthodes possibles selon le style d'exercice :
+// une option européenne a une formule fermée (Black-Scholes) ou se simule (Monte Carlo),
+// une option américaine se price ici uniquement par Longstaff-Schwartz.
+const METHODES = {
+  european: [['black_scholes', 'Black-Scholes'], ['monte_carlo', 'Monte Carlo']],
+  american: [['longstaff_schwartz', 'Longstaff-Schwartz']],
+};
+const NOMS_MODELES = {black_scholes: 'Black-Scholes', monte_carlo: 'Monte Carlo', longstaff_schwartz: 'Longstaff-Schwartz'};
+
+function updateOptMethod() {
+  const style = $('opt-style').value;
+  $('opt-method').innerHTML = METHODES[style].map(([v, label]) => `<option value="${v}">${label}</option>`).join('');
+  $('opt-method').disabled = METHODES[style].length === 1;
+  updateOptNsims();
+}
+// Le nombre de simulations n'apparaît que si un calcul simule (Monte Carlo, Longstaff-Schwartz, digitale).
+function updateOptNsims() {
+  $('opt-nsims-wrap').hidden = $('opt-instrument').value === 'vanilla' && $('opt-method').value === 'black_scholes';
+}
+$('opt-style').addEventListener('change', updateOptMethod);
+$('opt-method').addEventListener('change', updateOptNsims);
+updateOptMethod();
+
+// Une digitale est européenne : style forcé, Black-Scholes + Monte Carlo calculés tous les deux.
+$('opt-instrument').addEventListener('change', () => {
+  const digital = $('opt-instrument').value !== 'vanilla';
+  $('digital-payout-wrap').hidden = $('opt-instrument').value !== 'cash';
+  $('digital-note').hidden = !digital;
+  if (digital) { $('opt-style').value = 'european'; updateOptMethod(); $('opt-method').value = 'black_scholes'; }
+  $('opt-style').disabled = digital;
+  $('opt-method').disabled = digital;
+  updateOptNsims();
+});
+
+brancherRechercheTicker({
+  inputId: 'opt-ticker', resultsId: 'opt-ticker-results', statusId: 'opt-ticker-status',
+  onSelect: (symbol, status) => chargerMarche(symbol, status, data => {
+    $('opt-s0').value = data.S0;
+    $('opt-k').value = arrondi(data.S0);   // on repart à la monnaie
+    updateOptStrikes();
+    setVolMarche('opt', data);
+  }, $('form-options').querySelector('button[type=submit]')),
+});
+wireSigma('opt');
+
+surSoumission($('form-options'), $('opt-status'), async () => {
+  const instrument = $('opt-instrument').value;
+  const payload = {
+    side: $('opt-side').value, option_type: $('opt-type').value, style: $('opt-style').value,
+    method: $('opt-method').value, S0: $('opt-s0').value, K: $('opt-k').value, T: $('opt-t').value,
+    sigma: lireSigma('opt'), r: $('opt-r').value, q: $('opt-q').value,
+    n_simulations: $('opt-nsims').value,
+  };
+  if (instrument !== 'vanilla') { payload.digital_type = instrument; payload.payout = $('digital-payout').value; }
+  const data = await appelApi(instrument === 'vanilla' ? '/api/option' : '/api/digital', {payload});
+
+  $('opt-results').innerHTML = `
+    <div class="metrics">
+      <div class="metric"><p>Prix</p><strong>${fmt(data.price)}</strong></div>
+      <div class="metric"><p>Breakeven(s)</p><strong>${data.breakevens.length ? data.breakevens.map(fmt).join(' / ') : '—'}</strong></div>
+      <div class="metric"><p>Delta</p><strong>${fmt(data.primaires.Delta)}</strong></div>
+    </div>
+    <div class="card chart-card">${renderChart(data.ST_grid, [{key:'payoff', values:data.payoff}, {key:'pnl', values:data.pnl}], data.breakevens)}</div>
+    <div class="card chart-card">
+      <h2>Grecques primaires</h2>
+      ${greeksTable(data.primaires, ['Delta','Gamma','Vega','Theta','Rho'])}
+      <details><summary>Grecques secondaires</summary>${greeksTable(data.secondaires, ['Vanna','Vomma','Charm','Color','Speed','Zomma','Ultima','Lambda'])}</details>
+    </div>`;
+  if (data.monte_carlo) {
+    $('opt-results').insertAdjacentHTML('beforeend', `<div class="card chart-card">Monte Carlo : ${fmt(data.monte_carlo.price)} · IC95 : ${data.monte_carlo.ic95.map(fmt).join(' à ')}</div>`);
+  }
+  appendExtras('opt-results', data);
+  return 'Résultats à jour (' + (NOMS_MODELES[data.model_used] || data.model_used) + ').';
+});
+
+// -------- Onglet Forward --------
+surSoumission($('form-forward'), $('fwd-status'), async () => {
+  const payload = {
+    side: $('fwd-side').value, S0: $('fwd-s0').value, K: $('fwd-k').value,
+    T: $('fwd-t').value, r: $('fwd-r').value, q: $('fwd-q').value,
+  };
+  const data = await appelApi('/api/forward', {payload});
+  $('fwd-results').innerHTML = `
+    <div class="metrics">
+      <div class="metric"><p>Prix à terme théorique F</p><strong>${fmt(data.forward_price)}</strong></div>
+      <div class="metric"><p>Valeur actuelle du contrat</p><strong>${fmt(data.valeur_actuelle)}</strong></div>
+      <div class="metric"><p>Breakeven</p><strong>${data.breakevens.length ? data.breakevens.map(fmt).join(' / ') : '—'}</strong></div>
+    </div>
+    <div class="card chart-card">${renderChart(data.ST_grid, [{key:'payoff', values:data.payoff}, {key:'pnl', values:data.pnl}], data.breakevens)}</div>`;
+  appendExtras('fwd-results', data);
+  return 'Résultats à jour.';
+});
+
+// -------- Onglet Stratégies : champs dynamiques --------
+const STRAT_FIELDS = {
+  covered_call:   {k:true,  k1:false, k2:false, side:false},
+  protective_put: {k:true,  k1:false, k2:false, side:false},
+  straddle:       {k:true,  k1:false, k2:false, side:true},
+  strangle:       {k:false, k1:false, k2:false, side:true, kput:true, kcall:true},
+  call_spread:    {k:false, k1:true,  k2:true,  side:false},
+  put_spread:     {k:false, k1:true,  k2:true,  side:false},
+  collar:         {k:false, k1:false, k2:false, side:false, kput:true, kcall:true},
+};
+const STRAT_LABELS = {
+  k1_call_spread: 'Strike K1 (achat)', k2_call_spread: 'Strike K2 (vente)',
+  k1_put_spread: 'Strike K1 (achat, haut)', k2_put_spread: 'Strike K2 (vente, bas)',
+  kput: 'Strike put', kcall: 'Strike call',
+};
+
+function updateStrategyFields() {
+  const strat = $('strat-name').value;
+  const cfg = STRAT_FIELDS[strat];
+
+  $('strat-side-wrap').hidden = !cfg.side;
+  $('strat-k-wrap').hidden = !cfg.k;
+  $('strat-k1-wrap').hidden = !(cfg.k1 || cfg.kput);
+  $('strat-k2-wrap').hidden = !(cfg.k2 || cfg.kcall);
+  // les champs masqués sont aussi désactivés pour ne pas bloquer la validation du formulaire
+  $('strat-k').disabled = !cfg.k;
+  $('strat-k1').disabled = !(cfg.k1 || cfg.kput);
+  $('strat-k2').disabled = !(cfg.k2 || cfg.kcall);
+
+  if (cfg.kput) { $('strat-k1-label').textContent = STRAT_LABELS.kput; }
+  else if (strat === 'call_spread') { $('strat-k1-label').textContent = STRAT_LABELS.k1_call_spread; }
+  else if (strat === 'put_spread') { $('strat-k1-label').textContent = STRAT_LABELS.k1_put_spread; }
+
+  if (cfg.kcall) { $('strat-k2-label').textContent = STRAT_LABELS.kcall; }
+  else if (strat === 'call_spread') { $('strat-k2-label').textContent = STRAT_LABELS.k2_call_spread; }
+  else if (strat === 'put_spread') { $('strat-k2-label').textContent = STRAT_LABELS.k2_put_spread; }
+}
+$('strat-name').addEventListener('change', updateStrategyFields);
+updateStrategyFields();
+
+// Quand on change de sous-jacent, on recentre les strikes autour du nouveau spot.
+function recentrerStrategie(S0) {
+  const strat = $('strat-name').value;
+  $('strat-k').value = arrondi(S0);
+  const bas = arrondi(S0 * 0.95), haut = arrondi(S0 * 1.05);
+  if (strat === 'put_spread') { $('strat-k1').value = haut; $('strat-k2').value = bas; }
+  else { $('strat-k1').value = bas; $('strat-k2').value = haut; }
+}
+
+brancherRechercheTicker({
+  inputId: 'strat-ticker', resultsId: 'strat-ticker-results', statusId: 'strat-ticker-status',
+  onSelect: (symbol, status) => chargerMarche(symbol, status, data => {
+    $('strat-s0').value = data.S0;
+    recentrerStrategie(data.S0);
+    updateStratStrikes();
+    setVolMarche('strat', data);
+  }, $('form-strategy').querySelector('button[type=submit]')),
+});
+wireSigma('strat');
+
+surSoumission($('form-strategy'), $('strat-status'), async () => {
+  const strat = $('strat-name').value;
+  const cfg = STRAT_FIELDS[strat];
+  const payload = {
+    strategy: strat, S0: $('strat-s0').value, T: $('strat-t').value,
+    sigma: lireSigma('strat'), r: $('strat-r').value, q: $('strat-q').value,
+    qty: $('strat-qty').value, side: cfg.side ? $('strat-side').value : 'buy',
+  };
+  if (cfg.k) payload.K = $('strat-k').value;
+  if (cfg.k1) payload.K1 = $('strat-k1').value;
+  if (cfg.k2) payload.K2 = $('strat-k2').value;
+  if (cfg.kput) payload.K_put = $('strat-k1').value;
+  if (cfg.kcall) payload.K_call = $('strat-k2').value;
+
+  const data = await appelApi('/api/strategy', {payload});
+  $('strat-results').innerHTML = `
+    <div class="metrics">
+      <div class="metric"><p>Breakeven(s)</p><strong>${data.breakevens.length ? data.breakevens.map(fmt).join(' / ') : '—'}</strong></div>
+      <div class="metric"><p>Delta net</p><strong>${fmt(data.greeks.Delta)}</strong></div>
+      <div class="metric"><p>Theta net</p><strong>${fmt(data.greeks.Theta)}</strong></div>
+    </div>
+    <div class="card chart-card">${renderChart(data.ST_grid, [{key:'pnl', values:data.pnl}], data.breakevens)}</div>
+    <div class="card chart-card"><h2>Grecques agrégées de la stratégie</h2>${greeksTable(data.greeks, ['Delta','Gamma','Vega','Theta','Rho'])}</div>`;
+  appendExtras('strat-results', data);
+  return 'Résultats à jour · ' + data.n_legs + ' leg(s).';
+});
+
+// -------- Onglet Produits structurés : choix du produit --------
+// Chaque produit a son propre <form data-product="...">. Pour en ajouter un,
+// il suffit d'ajouter une <option> et un formulaire avec le bon data-product.
+// versionStructure change quand le produit ou ses règles changent : une réponse
+// arrivée entre-temps est ignorée au lieu de s'afficher sur le mauvais écran.
+let versionStructure = 0;
+const CODES_PRODUITS = {phoenix: ['PHNX', 'Phoenix autocallable'], autocall_plain: ['ACPL', 'Autocall Plain'],
+                        dra: ['DRA', 'Dual Range Accrual'], accumulateur: ['ACCU', 'Accumulateur'], decumulateur: ['DECU', 'Décumulateur']};
+$('struct-product').addEventListener('change', () => {
+  ++versionStructure;
+  const produit = $('struct-product').value;
+  document.querySelectorAll('#panel-structured form[data-product]').forEach(f => {
+    f.hidden = f.dataset.product !== produit;
+  });
+  $('phx-results').innerHTML = '<div class="empty">Lance un calcul pour voir les résultats.</div>';
+  $('cmd-code').textContent = 'STRC ' + CODES_PRODUITS[produit][0];
+  $('cmd-desc').textContent = CODES_PRODUITS[produit][1];
+});
+
+// Maturité en mois : un nombre entier de périodes d'observation (même règle que le serveur).
+function verifierMaturite(moisId, freqId, aideId) {
+  const champ = $(moisId), pasMois = 12 / Number($(freqId).value);
+  champ.step = pasMois;
+  champ.min = pasMois;
+  const n = Number(champ.value) / pasMois;
+  const ok = Number.isInteger(n) && n > 0;
+  const message = `La maturité doit être un multiple de ${pasMois} mois.`;
+  champ.setCustomValidity(ok ? '' : message);
+  if (aideId) $(aideId).textContent = ok ? `${n} date(s) d'observation, tous les ${pasMois} mois.` : message;
+  return ok;
+}
+
+// Indicateurs communs au Phoenix et au Plain.
+function renderStructuredMetrics(data) {
+  const margin = data.marge_emetteur_pct;
+  const metrics = [
+    ['Prix théorique', fmtPct(data.prix_pct), ''],
+    ['Valeur pour le montant investi', fmt2(data.prix), ''],
+    ['Marge émetteur', fmtPct(margin), margin >= 0 ? 'pos' : 'neg'],
+    ['Probabilité de perte en capital', fmtPct(data.proba_perte_capital_pct), ''],
+    ['Durée de vie moyenne', fmt2(data.duree_de_vie_moyenne) + ' ans', ''],
+    ['Arrive à maturité', fmtPct(data.proba_maturite_pct), ''],
+    ['Remboursement moyen si perte', fmtPct(data.remboursement_moyen_si_perte_pct), ''],
+    ['Coupons moyens actualisés', fmtPct(data.coupons_moyens_actualises_pct), ''],
+  ];
+  return '<div class="metrics structured-metrics">' + metrics.map(([label, value, style]) =>
+    `<div class="metric"><p>${label}</p><strong class="${style}">${value}</strong></div>`
+  ).join('') + '</div>';
+}
+
+// -------- Onglet Produits structurés : Phoenix --------
+$('phx-stepup-on').addEventListener('change', () => {
+  const on = $('phx-stepup-on').checked;
+  $('phx-stepup-wrap').hidden = !on;
+  $('phx-stepup').required = on;
+});
+
+// Les dates ne sont jamais saisies à la main : elles sont construites à partir
+// de la maturité et de la fréquence, donc forcément croissantes.
+const updatePhoenixDates = () => verifierMaturite('phx-months', 'phx-freq', 'phx-dates-hint');
+$('phx-freq').addEventListener('change', updatePhoenixDates);
+$('phx-months').addEventListener('input', updatePhoenixDates);
+
+// Le spot ne se saisit pas : un Phoenix se lit en % du niveau de départ.
+// Sans ticker on part de 100 (barrière 70 % = 70), avec un ticker on part du vrai spot.
+let phxSpot = 100, phxDevise = '';
+function phxNiveau(pct) {
+  const niveau = phxSpot * pct / 100;
+  const p = new Intl.NumberFormat('fr-FR', {maximumFractionDigits:2}).format(pct) + ' %';
+  return phxDevise ? `${p} du départ (${fmt(niveau)} ${phxDevise})` : `${p} du départ`;
+}
+function updatePhoenixHints() {
+  const kauto = Number($('phx-kauto').value), bcoupon = Number($('phx-bcoupon').value), bpdi = Number($('phx-bpdi').value);
+  $('phx-kauto-hint').textContent = $('phx-autocall').checked
+    ? `À chaque date, si le sous-jacent est au-dessus de ${phxNiveau(kauto)}, tu récupères ton capital + le coupon et le produit s'arrête.`
+    : 'Désactivé : le produit va toujours jusqu\'à maturité.';
+  $('phx-bcoupon-hint').textContent = `À chaque date, s'il est au-dessus de ${phxNiveau(bcoupon)}, tu touches le coupon.`;
+  $('phx-bpdi-hint').textContent = `À maturité, s'il est sous ${phxNiveau(bpdi)}, tu perds autant que la baisse du sous-jacent.`;
+}
+
+// Ordre des barrières : protection ≤ coupon ≤ rappel.
+// setCustomValidity bloque l'envoi du formulaire avec un message natif du navigateur.
+function checkPhoenixBarriers() {
+  const kauto = Number($('phx-kauto').value), bcoupon = Number($('phx-bcoupon').value), bpdi = Number($('phx-bpdi').value);
+  $('phx-bpdi').setCustomValidity(bpdi > bcoupon ? 'La protection doit être ≤ à la barrière coupon.' : '');
+  $('phx-bcoupon').setCustomValidity($('phx-autocall').checked && bcoupon > kauto ? 'La barrière coupon doit être ≤ à la barrière de rappel.' : '');
+}
+['phx-kauto', 'phx-bcoupon', 'phx-bpdi'].forEach(id => $(id).addEventListener('input', () => {
+  updatePhoenixHints();
+  checkPhoenixBarriers();
+}));
+$('phx-autocall').addEventListener('change', () => {
+  $('phx-kauto').disabled = !$('phx-autocall').checked;
+  updatePhoenixHints();
+  checkPhoenixBarriers();
+});
+updatePhoenixDates();
+updatePhoenixHints();
+
+brancherRechercheTicker({
+  inputId: 'phx-ticker', resultsId: 'phx-ticker-results', statusId: 'phx-ticker-status',
+  onSelect: (symbol, status) => chargerMarche(symbol, status, data => {
+    phxSpot = data.S0; phxDevise = data.devise;
+    updatePhoenixHints();
+    setVolMarche('phx', data);
+  }, $('form-phoenix').querySelector('button[type=submit]')),
+});
+wireSigma('phx');
+
+surSoumission($('form-phoenix'), $('phx-status'), async () => {
+  const version = versionStructure;
+  const freq = Number($('phx-freq').value);
+  const nDates = Number($('phx-months').value) / (12 / freq);
+  const coupon0 = Number($('phx-coupon').value);
+  const hausse = $('phx-stepup-on').checked ? Number($('phx-stepup').value) : 0;
+  // Coupon fixe si pas de hausse, sinon liste step-up : c, c + h, c + 2h...
+  const coupon = hausse > 0 ? Array.from({length: nDates}, (_, i) => coupon0 + i * hausse) : coupon0;
+
+  const payload = {
+    S0: phxSpot, sigma: lireSigma('phx'), r: $('phx-r').value, q: $('phx-q').value,
+    nominal: $('phx-nominal').value,
+    T: Number($('phx-months').value) / 12, frequence: freq,
+    coupon: coupon,
+    K_auto: $('phx-kauto').value, B_phoenix: $('phx-bcoupon').value, B_pdi: $('phx-bpdi').value,
+    memory: $('phx-memory').checked, has_autocall: $('phx-autocall').checked,
+    bonus_threshold: $('phx-bonus-threshold').value,
+    bonus_amount: $('phx-bonus-amount').value || 0,
+    n_simulations: $('phx-nsims').value,
+    step_down: $('phx-step-down').value,
+  };
+  const data = await appelApi('/api/phoenix', {payload});
+  if (version !== versionStructure) return;
+
+  const niv = data.niveaux;
+  const markers = [
+    niv.autocall !== null ? {x: niv.autocall, label: 'Rappel', color: '#5cc8ff'} : null,
+    {x: niv.coupon, label: 'Coupon', color: '#3ddc84'},
+    {x: niv.protection, label: 'Protection', color: '#ff5c5c'},
+  ].filter(Boolean);
+
+  const n = data.obs_dates.length;
+  const lignes = data.obs_dates.map((t, i) => `<tr>
+      <td>${fmt(t)} an(s)</td>
+      <td>${fmtPct(data.coupon_schedule_pct[i])}</td>
+      <td>${i === n - 1 ? 'Maturité' : !payload.has_autocall ? 'Désactivé' : fmtPct(data.proba_rappel_par_date_pct[i])}</td>
+    </tr>`).join('');
+
+  $('phx-results').innerHTML = `
+    ${renderStructuredMetrics(data)}
+    <div class="card chart-card">
+      ${renderChart(data.ST_grid, [{key:'payoff', values:data.payoff}, {key:'pnl', values:data.pnl}], [], {
+        labels: {payoff: 'Remboursement à maturité', pnl: 'Gain ou perte vs montant investi'},
+        xLabel: phxDevise ? `Prix du sous-jacent à maturité (${phxDevise})` : 'Niveau du sous-jacent à maturité (100 = départ)',
+        markers: markers,
+      })}
+      <p class="chart-note">Cas où le produit n'a pas été rappelé avant maturité. Seul le coupon de la dernière date est compté : les coupons déjà versés et l'effet mémoire dépendent du chemin suivi. Intervalle de confiance du prix : ${fmtPct(data.ic95_pct[0])} à ${fmtPct(data.ic95_pct[1])}.</p>
+    </div>
+    <div class="card chart-card">
+      <h2>Calendrier d'observation</h2>
+      <table class="greeks-table">
+        <thead><tr><th>Date</th><th>Coupon de la période</th><th>Probabilité de rappel</th></tr></thead>
+        <tbody>${lignes}</tbody>
+      </table>
+    </div>`;
+  appendExtras('phx-results', data);
+  return `Résultats à jour (${fmt(data.prix)} pour ${fmt(Number(payload.nominal))} investis).`;
+}, {avant: checkPhoenixBarriers, attente: 'Simulation en cours...'});
+
+// -------- Onglet Produits structurés : Autocall Plain --------
+const ac = id => $('ac-plain-' + id);
+const formAutocall = $('form-autocall_plain');
+
+function afficherAutocall(data) {
+  const hasAutocall = data.has_autocall !== false;
+  const result = document.createElement('div');
+  result.innerHTML = renderStructuredMetrics(data);
+  const card = document.createElement('div'); card.className = 'card chart-card';
+  const title = document.createElement('h2');
+  title.textContent = hasAutocall ? 'Autocall Plain · résultats' : 'Autocall Plain sans rappel · résultats';
+  const note = document.createElement('p'); note.className = 'chart-note';
+  note.textContent = `Intervalle de confiance Monte Carlo à 95 % : ${fmtPct(data.ic95_pct[0])} à ${fmtPct(data.ic95_pct[1])}. ${data.n_simulations.toLocaleString('fr-FR')} simulations. Écart souscription − valeur : ${fmtPct(data.marge_emetteur_pct)} (hors coûts et risque de défaut).`;
+  const rules = document.createElement('p'); rules.className = 'chart-note';
+  rules.textContent = (hasAutocall
+    ? 'Les coupons s’accumulent : paiement au rappel, ou à maturité si le seuil final est atteint.'
+    : 'Aucun rappel anticipé. À maturité, tous les coupons accumulés sont payés si le seuil final est atteint, sinon aucun.')
+    + ' La probabilité de perte concerne le principal, avant prise en compte des coupons.';
+  const loss = document.createElement('p'); loss.className = 'chart-note';
+  loss.textContent = data.remboursement_moyen_si_perte_pct === null
+    ? 'Aucune perte de capital dans les simulations.'
+    : 'Capital moyen remboursé en cas de perte : ' + fmtPct(data.remboursement_moyen_si_perte_pct) + '.';
+  card.append(title, note, rules, loss);
+
+  const calendar = document.createElement('div'); calendar.className = 'card chart-card';
+  const h = document.createElement('h2'); h.textContent = 'Calendrier des observations';
+  const table = document.createElement('table'); table.className = 'greeks-table';
+  table.innerHTML = '<thead><tr><th>Date</th><th>Coupon accumulé</th><th>Rappel à cette date</th></tr></thead>';
+  const body = document.createElement('tbody');
+  data.obs_dates.forEach((t, i) => {
+    const row = document.createElement('tr');
+    const rappel = i === data.obs_dates.length - 1 ? 'Maturité'
+      : !hasAutocall ? 'Désactivé'
+      : t < data.first_call_date ? 'Non autorisé'
+      : fmtPct(data.proba_rappel_par_date_pct[i]);
+    for (const text of [fmt2(t) + ' ans', fmtPct(data.coupon_pct * (i + 1)), rappel]) {
+      const td = document.createElement('td'); td.textContent = text; row.append(td);
+    }
+    body.append(row);
+  });
+  table.append(body);
+  const foot = document.createElement('p'); foot.className = 'chart-note';
+  foot.textContent = 'Les coupons indiqués sont accumulés, pas versés à chaque date. À maturité, leur paiement dépend du seuil final.';
+  calendar.append(h, table, foot);
+
+  const chart = document.createElement('div'); chart.className = 'card chart-card';
+  const markers = [{x: data.niveaux.coupon, label: hasAutocall ? 'Rappel / coupon final' : 'Coupon final', color: '#5cc8ff'}];
+  if (data.niveaux.protection !== null) markers.push({x: data.niveaux.protection, label: 'Protection', color: '#ff5c5c'});
+  chart.innerHTML = renderChart(data.ST_grid, [{key:'payoff', values:data.payoff}, {key:'pnl', values:data.pnl}], [], {
+    labels: {payoff: 'Remboursement à maturité', pnl: 'Gain ou perte vs montant investi'},
+    xLabel: 'Prix du sous-jacent à maturité (même unité que le spot)', markers,
+  });
+  const chartNote = document.createElement('p'); chartNote.className = 'chart-note';
+  chartNote.textContent = 'Cas sans rappel avant maturité. Tous les coupons accumulés sont payés si le seuil final est atteint, sinon aucun. Montants non actualisés ; gain ou perte par rapport au nominal investi.';
+  chart.append(chartNote);
+  $('phx-results').replaceChildren(result.firstElementChild, chart, card, calendar);
+}
+
+brancherRechercheTicker({
+  inputId: 'ac-plain-ticker', resultsId: 'ac-plain-suggestions', statusId: 'ac-plain-market-status',
+  onSelect: (symbol, status) => chargerMarche(symbol, status, data => {
+    ac('s0').value = data.S0;
+    setVolMarche('ac-plain', data);
+  }, formAutocall.querySelector('button[type=submit]')),
+});
+wireSigma('ac-plain');
+ac('protection').addEventListener('change', () => { ac('ki').disabled = !ac('protection').checked; });
+
+function verifierDatesAutocall() {
+  verifierMaturite('ac-plain-months', 'ac-plain-freq');
+  ac('first').setCustomValidity(!ac('autocall').checked || Number(ac('first').value) <= Number(ac('months').value)
+    ? '' : 'Le premier rappel ne peut pas être après la maturité.');
+}
+for (const champ of ['freq', 'months', 'first']) ac(champ).addEventListener('input', verifierDatesAutocall);
+
+function updateAutocall() {
+  const enabled = ac('autocall').checked;
+  ac('first').disabled = !enabled;
+  ac('first').parentElement.hidden = !enabled;
+  document.querySelector('label[for="ac-plain-barrier"]').textContent = enabled ? 'Rappel et coupon final (%)' : 'Seuil du coupon final (%)';
+  ac('rules').textContent = enabled
+    ? 'Coupons accumulés payés au rappel ; à maturité, tous les coupons uniquement si le seuil final est atteint. Les barrières sont exprimées en % du spot initial.'
+    : 'Sans rappel : paiement à maturité. Tous les coupons accumulés si le seuil final est atteint, sinon aucun. La protection du capital reste indépendante.';
+  ++versionStructure;
+  $('phx-results').innerHTML = '<div class="empty">Paramètres modifiés. Lance un calcul pour voir les résultats.</div>';
+  ac('status').textContent = '';
+  verifierDatesAutocall();
+}
+ac('autocall').addEventListener('change', updateAutocall);
+updateAutocall();
+
+surSoumission(formAutocall, ac('status'), async () => {
+  const version = versionStructure;
+  const payload = {
+    produit: 'autocall_plain', S0: ac('s0').value, r: ac('r').value, q: ac('q').value, sigma: lireSigma('ac-plain'),
+    nominal: ac('nominal').value, T: Number(ac('months').value) / 12, frequence: ac('freq').value,
+    coupon: ac('coupon').value, K_auto: ac('barrier').value, protection: ac('protection').checked,
+    B_pdi: ac('ki').value, n_simulations: ac('nsims').value, step_down: ac('step-down').value,
+    has_autocall: ac('autocall').checked,
+  };
+  payload.first_call_months = payload.has_autocall ? ac('first').value : 0;
+  $('phx-results').innerHTML = '<div class="empty">Calcul en cours…</div>';
+  try {
+    const data = await appelApi('/api/autocall', {payload});
+    if (version !== versionStructure) return;
+    afficherAutocall(data);
+    appendExtras('phx-results', data);
+    return 'Calcul terminé.';
+  } catch (err) {
+    if (version === versionStructure) $('phx-results').innerHTML = '<div class="empty">Vérifiez les paramètres et relancez le calcul.</div>';
+    throw err;
+  }
+}, {avant: verifierDatesAutocall, attente: 'Calcul Monte Carlo en cours…'});
+
+// -------- Onglet Produits structurés : DRA, accumulateur, décumulateur --------
+// Formulaires génériques : chaque <input name="..."> porte le nom du paramètre attendu par le serveur.
+for (const kind of ['dra', 'accumulateur', 'decumulateur']) {
+  const form = $('form-' + kind);
+  surSoumission(form, $(kind + '-status'), async () => {
+    const version = versionStructure;
+    const payload = Object.fromEntries(new FormData(form));
+    payload.sensibilite = false;
+    // FormData n'inclut une case que si elle est cochée (valeur "on") : on la lit à part
+    payload.ko_inclut_date = !!form.querySelector('[name=ko_inclut_date]')?.checked;
+    const data = await appelApi('/api/' + kind, {payload});
+    if (version !== versionStructure) return;
+    const metrics = kind === 'dra'
+      ? [['Valeur', data.prix], ['Coupon moyen', data.coupon_moyen], ['Fraction dans les ranges (%)', 100 * data.proba_dans_fourchettes]]
+      : [['Valeur des P&L actualisés', data.prix], ['Quantité totale moyenne', data.quantite_totale_moyenne], ['Durée moyenne (ans)', data.duree_de_vie_moyenne]];
+    $('phx-results').innerHTML = '<div class="metrics">' + metrics.map(([k, v]) => `<div class="metric"><p>${k}</p><strong>${fmt(v)}</strong></div>`).join('')
+      + '</div><div class="card chart-card">IC95 Monte Carlo : ' + data.ic95.map(fmt).join(' à ') + '.</div>';
+    if (kind !== 'dra') {
+      $('phx-results').insertAdjacentHTML('beforeend', '<div class="card chart-card"><h2>KO par date</h2><table class="greeks-table">'
+        + data.obs_dates.map((t, i) => `<tr><td>${fmt(t)} ans</td><td>${fmtPct(100 * data.proba_ko_par_date[i])}</td></tr>`).join('')
+        + '</table><p class="hint">Perte maximale observée : ' + fmt(data.perte_maximale_observee)
+        + '. Ce montant ne constitue pas une limite contractuelle de perte.</p></div>');
+    }
+    appendExtras('phx-results', data);
+    return 'Calcul terminé.';
+  });
+}
+
+// -------- Chantier : volatilité historique et séries chronologiques --------
+const volCurves = [
+  {key:'series_20', label:'20 séances', color:'var(--cyan)'},
+  {key:'series_60', label:'60 séances', color:'var(--amber)'},
+  {key:'series_ewma', label:'EWMA', color:'var(--green)'},
+  {key:'series_parkinson_20', label:'Parkinson · 20 séances', color:'var(--yellow)'},
+];
+const volDate = x => new Date(x + 'T00:00:00Z').toLocaleDateString('fr-FR', {timeZone:'UTC'});
+function validateVolatility(data) {
+  const n = data.dates?.length;
+  const metrics = [data.vol_historique, data.vol_20, data.vol_60, data.vol_ewma, data.vol_parkinson];
+  if (!n || !Array.isArray(data.dates) ||
+      !volCurves.every(curve => Array.isArray(data[curve.key]) && data[curve.key].length === n) ||
+      ![...metrics, ...volCurves.flatMap(curve => data[curve.key] || [])].every(v => typeof v === 'number' && Number.isFinite(v) && v >= 0) ||
+      !data.dates.every((d, i) => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d) && Number.isFinite(Date.parse(d)) && (!i || d > data.dates[i-1]))) {
+    throw new Error('Données de volatilité absentes ou incohérentes. Essayez une période plus longue.');
+  }
+  return data;
+}
+function renderVolatilityChart(data) {
+  const W=760, H=340, L=64, R=20, T=30, B=48;
+  const times = data.dates.map(d => Date.parse(d));
+  const span = times.at(-1) - times[0];
+  const max = Math.max(...volCurves.flatMap(curve => data[curve.key]), 1) * 1.12;
+  const x = i => span ? L + (times[i]-times[0])/span*(W-L-R) : (L+W-R)/2;
+  const y = v => H - B - v/max*(H-T-B);
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('tabindex', '0');
+  svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', 'Volatilités annualisées : 20 séances, 60 séances, EWMA et Parkinson sur 20 séances. Flèches gauche et droite pour parcourir les dates.');
+  let markup = '<title>Volatilité glissante annualisée</title>';
+  for (let i=0; i<=4; i++) {
+    const v = max*i/4, py = y(v);
+    markup += `<line x1="${L}" x2="${W-R}" y1="${py}" y2="${py}" stroke="var(--line)"/><text x="${L-8}" y="${py+4}" text-anchor="end">${v.toFixed(1)} %</text>`;
+  }
+  for (const i of [...new Set([0, Math.floor((times.length-1)/2), times.length-1])]) {
+    markup += `<text x="${x(i)}" y="${H-22}" text-anchor="${i===0?'start':i===times.length-1?'end':'middle'}">${volDate(data.dates[i])}</text>`;
+  }
+  for (const curve of volCurves) {
+    const values = data[curve.key], color = curve.color;
+    const path = values.map((v,i) => `${i?'L':'M'}${x(i).toFixed(2)},${y(v).toFixed(2)}`).join(' ');
+    markup += `<path d="${path}" fill="none" stroke="${color}" stroke-width="2"/>`;
+    if (values.length === 1) markup += `<circle cx="${x(0)}" cy="${y(values[0])}" r="3" fill="${color}"/>`;
+  }
+  markup += `<line id="vol-cursor" y1="${T}" y2="${H-B}" stroke="var(--muted)" stroke-dasharray="4 4" hidden/>
+    ${volCurves.map((curve,i) => `<circle id="vol-dot${i}" r="4" fill="${curve.color}" hidden/>`).join('')}`;
+  svg.innerHTML = markup;
+  const note = document.createElement('p'); note.className = 'chart-note'; note.setAttribute('aria-live', 'polite');
+  let index = times.length - 1;
+  function show(i) {
+    index = i;
+    const cursor = svg.querySelector('#vol-cursor'); cursor.removeAttribute('hidden');
+    cursor.setAttribute('x1', x(i)); cursor.setAttribute('x2', x(i));
+    for (const [j, curve] of volCurves.entries()) {
+      const dot = svg.querySelector('#vol-dot' + j); dot.removeAttribute('hidden');
+      dot.setAttribute('cx', x(i)); dot.setAttribute('cy', y(data[curve.key][i]));
+    }
+    note.textContent = volDate(data.dates[i]) + ' · ' + volCurves.map(curve => curve.label + ' : ' + fmtPct(data[curve.key][i])).join(' · ');
+  }
+  svg.addEventListener('pointermove', e => {
+    const point = svg.createSVGPoint(); point.x = e.clientX; point.y = e.clientY;
+    const px = point.matrixTransform(svg.getScreenCTM().inverse()).x;
+    let nearest = 0;
+    for (let i=1; i<times.length; i++) if (Math.abs(x(i)-px) < Math.abs(x(nearest)-px)) nearest = i;
+    show(nearest);
+  });
+  svg.addEventListener('keydown', e => {
+    if (!['ArrowLeft','ArrowRight','Home','End'].includes(e.key)) return;
+    e.preventDefault();
+    show(e.key==='Home' ? 0 : e.key==='End' ? times.length-1 : Math.max(0, Math.min(times.length-1, index + (e.key==='ArrowRight' ? 1 : -1))));
+  });
+  show(index);
+  return {svg, note};
+}
+
+const fermerRechercheVol = brancherRechercheTicker({
+  inputId: 'vol-ticker', resultsId: 'vol-suggestions', statusId: 'vol-search-status',
+  onSelect: () => $('vol-ticker').focus(), saisieLibre: true,
+});
+
+surSoumission($('vol-form'), $('vol-status'), async () => {
+  const results = $('chantier-results');
+  const ticker = $('vol-ticker').value.trim().toUpperCase(), periode = $('vol-period').value, lambda = $('vol-lambda').value;
+  fermerRechercheVol();
+  results.setAttribute('aria-busy', 'true');
+  results.innerHTML = '<div class="empty">Calcul des volatilités…</div>';
+  try {
+    const data = validateVolatility(await appelApi('/api/volatility?' + new URLSearchParams({ticker, periode, lambda}), {timeout: 45000}));
+    results.replaceChildren();
+    const metrics = document.createElement('div'); metrics.className = 'metrics';
+    for (const [label, value] of [['Historique · ' + periode, data.vol_historique], ['Glissante · 20 séances', data.vol_20], ['Glissante · 60 séances', data.vol_60], ['EWMA · λ = ' + lambda, data.vol_ewma], ['Parkinson · ' + periode, data.vol_parkinson]]) {
+      const metric = document.createElement('div'); metric.className = 'metric';
+      const p = document.createElement('p'); p.textContent = label;
+      const strong = document.createElement('strong'); strong.textContent = fmtPct(value);
+      metric.append(p, strong); metrics.append(metric);
+    }
+    const card = document.createElement('div'); card.className = 'card chart-card';
+    const title = document.createElement('h2'); title.textContent = ticker + ' · Volatilités annualisées';
+    const legend = document.createElement('p'); legend.className = 'chart-note';
+    legend.innerHTML = volCurves.map(curve => `<span style="color:${curve.color}">━ ${curve.label}</span>`).join(' · ') + ' · Survolez le graphique ou utilisez les flèches.';
+    const {svg, note} = renderVolatilityChart(data); card.append(title, svg, legend, note);
+    const convention = document.createElement('p'); convention.className = 'chart-note';
+    convention.textContent = `Parkinson indicateur : toute la période ; courbe : 20 séances. EWMA : demi-vie ${data.ewma_half_life} séances. Les courbes démarrent après 60 rendements.`;
+    card.append(convention); results.append(metrics, card);
+    return `${ticker} · ${data.dates.length} observations · ${volDate(data.dates[0])} au ${volDate(data.dates.at(-1))}`;
+  } catch (err) {
+    results.innerHTML = '<div class="empty">Calcul indisponible. Vérifiez le ticker ou la période et réessayez.</div>';
+    throw err;
+  } finally {
+    results.setAttribute('aria-busy', 'false');
+  }
+}, {attente: 'Récupération des données de marché…'});
+
+// -------- Tableau des flux par date et export PDF --------
+// Export d'un instantané serveur : les changements de formulaire ne modifient pas ce PDF.
+function appendExtras(target, data) {
+  const panel = $(target);
+  if (data.flux_attendus_par_date) {
+    const rows = data.obs_dates.map((t, i) => `<tr><td>${fmt(t)}</td><td>${data.barrieres_rappel_pct && i < data.obs_dates.length-1 ? fmtPct(data.barrieres_rappel_pct[i]) : '—'}</td><td>${fmt(data.flux_attendus_par_date[i])}</td><td>${fmt(data.flux_attendus_actualises_par_date[i])}</td></tr>`).join('');
+    panel.insertAdjacentHTML('beforeend', `<div class="card chart-card"><h2>Flux attendus par date</h2><table class="greeks-table"><thead><tr><th>Années</th><th>Seuil rappel (%)</th><th>Flux moyen</th><th>Flux actualisé</th></tr></thead><tbody>${rows}</tbody></table><p class="hint">Moyennes sur toutes les trajectoires, y compris celles sans paiement. La somme des flux actualisés retrouve la valeur théorique.</p></div>`);
+  }
+  if (!data.calculation_id) return;
+  const button = document.createElement('button'); button.type = 'button'; button.className = 'primary'; button.textContent = 'Exporter ce calcul en PDF';
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    try {
+      // réponse binaire (PDF) : appel direct à fetch, pas de JSON en cas de succès
+      const response = await fetch('/api/export_pdf', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({calculation_id: data.calculation_id})});
+      if (!response.ok) { const error = await response.json(); throw new Error(error.error); }
+      const url = URL.createObjectURL(await response.blob());
+      const a = document.createElement('a'); a.href = url; a.download = 'dernier_calcul.pdf'; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      button.textContent = e.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
+  panel.append(button);
+}
+
+</script>
+</body>
+</html>
